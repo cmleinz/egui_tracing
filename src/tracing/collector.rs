@@ -1,5 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::collections::HashSet;
+use std::sync::Arc;
 
+use parking_lot::{MappedRwLockReadGuard, RwLock};
 use tracing::{Event, Level, Subscriber};
 #[cfg(feature = "log")]
 use tracing_log::NormalizeEvent;
@@ -12,14 +14,14 @@ use super::event::CollectedEvent;
 #[derive(Clone, Debug)]
 pub enum AllowedTargets {
     All,
-    Selected(Vec<String>),
+    Selected(HashSet<String>),
 }
 
 #[derive(Debug, Clone)]
 pub struct EventCollector {
     allowed_targets: AllowedTargets,
     level: Level,
-    events: Arc<Mutex<Vec<CollectedEvent>>>,
+    events: Arc<RwLock<Vec<CollectedEvent>>>,
 }
 
 impl EventCollector {
@@ -39,24 +41,29 @@ impl EventCollector {
     }
 
     pub fn events(&self) -> Vec<CollectedEvent> {
-        self.events.lock().unwrap().clone()
+        self.events.read().clone()
+    }
+
+    pub fn get_events(
+        &self,
+    ) -> parking_lot::lock_api::RwLockReadGuard<'_, parking_lot::RawRwLock, Vec<CollectedEvent>>
+    {
+        self.events.read()
     }
 
     pub fn clear(&self) {
-        let mut events = self.events.lock().unwrap();
-        *events = Vec::new();
+        self.events.write().clear();
     }
 
     fn collect(&self, event: CollectedEvent) {
         if event.level <= self.level {
             let should_collect = match self.allowed_targets {
                 AllowedTargets::All => true,
-                AllowedTargets::Selected(ref selection) => selection
-                    .iter()
-                    .any(|target| event.target.starts_with(target)),
+                AllowedTargets::Selected(ref selection) => selection.contains(&event.target),
             };
+
             if should_collect {
-                self.events.lock().unwrap().push(event);
+                self.events.write().push(event);
             }
         }
     }
@@ -66,7 +73,7 @@ impl Default for EventCollector {
     fn default() -> Self {
         Self {
             allowed_targets: AllowedTargets::All,
-            events: Arc::new(Mutex::new(Vec::new())),
+            events: Arc::new(RwLock::new(Vec::new())),
             level: Level::TRACE, // capture everything by default.
         }
     }

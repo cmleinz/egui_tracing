@@ -8,7 +8,7 @@ pub struct LogsState {
     pub target_filter: TargetFilter,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LevelFilter {
     pub trace: bool,
     pub debug: bool,

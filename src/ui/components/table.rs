@@ -22,7 +22,7 @@ impl<'a, T> Default for Table<'a, T> {
     }
 }
 
-impl<'a, T> Table<'a, T> {
+impl<'a, T: 'a> Table<'a, T> {
     pub fn row_height(mut self, v: f32) -> Self {
         self.row_height = Some(v);
         self
@@ -43,7 +43,12 @@ impl<'a, T> Table<'a, T> {
         self
     }
 
-    pub fn show(self, ui: &mut Ui, values: Iter<&T>) -> Response {
+    pub fn show<I>(self, ui: &mut Ui, values: I, len: usize) -> Response
+    where
+        I: IntoIterator<Item = &'a T>,
+    {
+        let values = values.into_iter();
+
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.style_mut().visuals.override_text_color = Some(Color32::WHITE);
@@ -87,7 +92,7 @@ impl<'a, T> Table<'a, T> {
                 .show_rows(
                     ui,
                     self.row_height.unwrap() + SEPARATOR_SPACING,
-                    values.len(),
+                    len,
                     |ui, range| {
                         for value in values.skip(range.start).take(range.len()) {
                             ui.horizontal(|ui| {

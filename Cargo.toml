@@ -18,6 +18,7 @@ wasmbind = ["chrono/wasmbind"]
 chrono = { version = "0.4.24", default-features = false, features = ["clock"] }
 egui = "0.22"
 globset = { version = "0.4.10", features = ["serde1"] }
+parking_lot = { version = "0.12.1", features = ["owning_ref"] }
 serde = { version = "1.0.164", default-features = false, features = ["derive"] }
 tracing = { version = "0.1", default-features = false }
 tracing-log = { version = "0.1.3", optional = true, default-features = false }

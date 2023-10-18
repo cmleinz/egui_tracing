@@ -53,11 +53,14 @@ impl Widget for Logs {
             glob.build().unwrap()
         };
 
-        let events = self.collector.events();
+        // CORRECTNESS: Since the UI will be re-rendered if the level filter is changed it's safe to
+        // assume no change in the level-filter within a frame
+        let level_filter = state.level_filter.clone();
+        let events = self.collector.get_events();
         let filtered_events = events
             .iter()
-            .filter(|event| state.level_filter.get(event.level) && !glob.is_match(&event.target))
-            .collect::<Vec<_>>();
+            .filter(|event| level_filter.get(event.level) && !glob.is_match(&event.target));
+        let count = filtered_events.clone().count();
 
         let row_height = constants::SEPARATOR_SPACING
             + ui.style().text_styles.get(&TextStyle::Small).unwrap().size;
@@ -129,6 +132,6 @@ impl Widget for Logs {
                     })
                     .show(ui);
             })
-            .show(ui, filtered_events.iter())
+            .show(ui, filtered_events, count)
     }
 }
